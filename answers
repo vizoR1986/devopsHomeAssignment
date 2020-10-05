@@ -1,0 +1,123 @@
+Devops challenge
+Consider having an inventory in the following format (yaml):
+server1:
+  ip: 192.168.0.1
+  bastion: 212.186.105.45
+server2:
+  ip: 192.168.0.2
+  bastion: 212.186.105.45
+server3:
+  ip: 192.168.0.3
+  bastion: 212.186.105.48
+server4:
+  ip: 192.168.0.4
+  bastion: 212.186.105.49
+serverN:
+.....
+
+To remotely login (ssh) to any of the servers with the given ip you have to jump over a bastion
+host defined for the given server.
+Question 1
+Assuming the login username to all servers is ubuntu and we have public key authentication
+(your public key is already on all of those hosts), how would you log in to a server?
+
+Answer1 
+
+If everything is set up as sated above. Keys are deployed and user exists :
+
+ssh -o ProxyCommand="ssh -W %h:%p ubuntu@212.186.105.45" -l ubuntu 192.168.0.1
+
+Above command will first create an ssh connection with the jumphost, using it as a proxy, and then jump to the destination host. If there is multiple jumphost before the endhost, 
+there is a possiblity to generate mulitple embedded proxycommands.
+
+Question 2
+There can be thousands of servers in the inventory. You might need to log in remotely multiple
+times per hour to arbitrary servers from the list. How would you ease this process?
+Please publish your solution in a GitHub repository.
+
+Answer2:
+
+If im free to use any packags during the implementation , then i would use the YQ package. YQ is a wrapper around the original JQ. Basically YQ is built around the original JQ package, works the same way, 
+and it can parse yaml files.
+
+Prerequisites : 
+  -  sudo apt install jq
+  -  sudo apt install python3 ( if python3 is missing ) 
+  -  sudo apt install python3-pip ( python3 package manager )
+  -  pip3 install yq
+  -  export PATH=$PATH:/home/vizor/.local/bin ( export the binary to the path to use it anywhere from the shell)
+
+How it works : 
+  $ yq -Y .server1.ip host_list.yaml | head -n 1
+  192.168.0.1
+
+Once executed, it works as the same as the JQ , except it parses through a yaml file. 
+To parse multiple entries : 
+
+$ for i in server{1..4};do echo $i;yq -y -c .$i.ip host_list.yaml | head -n 1;yq -y -c .$i.bastion host_list.yaml |head -n 1;done
+server1
+192.168.0.1
+212.186.105.45
+server2
+192.168.0.2
+212.186.105.45
+server3
+192.168.0.3
+212.186.105.48
+server4
+192.168.0.4
+212.186.105.49
+$
+
+And to automate it , i would create a simple shell script , make it executalbe , copy to the /usr/bin , and use the following way : 
+
+sshConnect.sh -f host_list.yaml -s server1
+
+-f will be the above yaml that contains all the hosts and its bastion host. The -s  the server i would like to connect to. -h will be the help for the shell script
+This way connect ionto any server through a bastion host is possible.
+
+Example usage : 
+
+$ ./sshConnect.sh -f ./host_list.yaml -s server1
+-f was triggered, Parameter: ./host_list.yaml
+./host_list.yaml was set
+-s was triggered, Parameter: server1
+server1 was set
+Bastion host for server1 is 212.186.105.45
+generating ssh command against bastion 212.186.105.45...
+ssh -o ProxyCommand="ssh -W %h:%p ubuntu@212.186.105.45" -l ubuntu 192.168.0.1
+
+To extend this script i can think of the following.
+Once this script is executed , from the given host file , smaller ssh_config files are generated , 
+and saved in a specific folder. So basically the script is only generating smaller ssh config files, and does nothing else.
+Once these generated , install the following package : 
+  
+  sudo apt install bash-completion
+
+Next create an alias for ssh named jssh.
+
+  alias jssh="ssh -F"
+
+And then just use the folder for auto-complete. 
+This way we can simply just use jssh and the auto complete to connect to the required server.
+example ssh config : 
+
+$ cat example_ssh_config
+Host bastion
+  Hostname <Parsed_bastion_IP>
+
+Host server1
+  Hostname <Parsed_serveR_IP>
+  ProxyCommand ssh bastion -W %h:%p
+
+And then to ssh : 
+  jssh <auto complete server> <server_name>
+  jssh server1 server1
+
+Auto complete server value should be the same as server name in this case. 
+Although i have to mention that i never used bash auto complete function before. But in this case , and also with larger host file containing 1000+ server would be beneficial. 
+
+To extend with error checking : 
+ - check if the given hostfile exists, if not quit with an error message that host file not found
+ - check if the server we want to connect to is in the list. If not, exit from the script with server not found.
+ - check if the server is found, generate an ssh connection with a short timeout to skip those hosts whic are not available or non existent anymore
