@@ -28,7 +28,7 @@ If everything is set up as sated above. Keys are deployed and user exists :
 ssh -o ProxyCommand="ssh -W %h:%p ubuntu@212.186.105.45" -l ubuntu 192.168.0.1
 
 Above command will first create an ssh connection with the jumphost, using it as a proxy, and then jump to the destination host. If there is multiple jumphost before the endhost, 
-there is a possiblity to generate mulitple embedded proxycommands.
+there is a possibility to generate multiple embedded proxy commands.
 
 Question 2
 There can be thousands of servers in the inventory. You might need to log in remotely multiple
@@ -37,15 +37,15 @@ Please publish your solution in a GitHub repository.
 
 Answer2:
 
-If im free to use any packags during the implementation , then i would use the YQ package. YQ is a wrapper around the original JQ. Basically YQ is built around the original JQ package, works the same way, 
-and it can parse yaml files.
+If im free to use any packages during the implementation , then i would use the YQ package. YQ is a wrapper around the original JQ. Basically YQ is built around the original JQ package, works the same way, 
+it can parse yaml files.
 
-Prerequisites : 
+Prerequisites: 
   -  sudo apt install jq
   -  sudo apt install python3 ( if python3 is missing ) 
   -  sudo apt install python3-pip ( python3 package manager )
   -  pip3 install yq
-  -  export PATH=$PATH:/home/vizor/.local/bin ( export the binary to the path to use it anywhere from the shell)
+  -  export PATH=$PATH:/home/vizor/.local/bin (export the binary to the path to use it anywhere from the shell)
 
 How it works : 
   $ yq -Y .server1.ip host_list.yaml | head -n 1
@@ -120,4 +120,4 @@ Although i have to mention that i never used bash auto complete function before.
 To extend with error checking : 
  - check if the given hostfile exists, if not quit with an error message that host file not found
  - check if the server we want to connect to is in the list. If not, exit from the script with server not found.
- - check if the server is found, generate an ssh connection with a short timeout to skip those hosts whic are not available or non existent anymore
+ - check if the server is found, generate an ssh connection with a short timeout to skip those hosts which are not available or non existent anymore
